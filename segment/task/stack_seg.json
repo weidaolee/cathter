@@ -1,0 +1,137 @@
+{
+    "train": {
+        "batch_size": 32,
+        "prefetch": 1,
+        "max_epoch": 100,
+        "learning_rate": 2.5e-04,
+        "weight_decay": 5e-03,
+        "continue": false,
+        "monitor": {
+		    "metric": "dice",
+		    "mode": "min"
+	    },
+        "running_losses": [
+            "total",
+			"dice",
+            "appear_bce"
+        ]
+    },
+    "model": {
+		"load_ckpt": false,
+		"architecture": "Unet",
+        "decoder": true,
+        "act_layer": "PReLU",
+        "norm_layer": {
+            "Batchnorm2d": {
+                "num_groups":32
+            }
+        },
+        "cls_out_features": {
+            "appear": 4
+        },
+		"parameters": {
+			"encoder_name": "timm-resnest200e",
+            "encoder_weights": "imagenet",
+			"encoder_depth": 5,
+			"decoder_channels": [512, 256, 128, 64, 32],
+			"in_channels": 9,
+			"classes": 4,
+			"decoder_attention_type": "scse"
+		}
+	},
+	"optimizer": {
+        "amsgrad": true,
+		"load_ckpt": false
+	},
+	"lr_scheduler":{
+        "name": "CyclicLR",
+        "epoch_size_down": 10,
+        "parameters":{
+            "base_lr": 1e-6,
+            "step_size_up": 1,
+            "mode": "exp_range",
+            "gamma": 0.9999,
+            "cycle_momentum": false
+        },
+        "load_ckpt": false
+	},
+	"loss": {
+		"dice": {
+			"smooth": 1e-4,
+			"factor": 1.00
+		},
+        "iou": {
+            "smooth": 1e-4,
+            "factor": 1.00
+        },
+		"focal": {
+			"gamma": 4,
+			"factor": 25.00
+		},
+		"seg_bce": {
+			"factor": 1.00
+		},
+        "cls_bce": {
+            "appear": {
+                "weight": [
+                    0.33,
+                    0.35,
+                    0.90,
+                    0.10
+                ],
+                "findings": [
+                    "ETT",
+                    "NGT",
+                    "CVC",
+                    "SGC"
+                ],
+                "factor": 4.0
+            }
+        }
+	},
+	"dataset": {
+		"image_file_postfix": "image_9c_512",
+		"mask_file_postfix": "stack_label",
+        "catheters": "total",
+		"precache": 1,
+        "findings": {
+            "appear": [
+                "ETT",
+                "NGT",
+                "CVC",
+			    "Swan Ganz Catheter Present"
+		    ]
+        }
+	},
+    "aug_scheduler": {
+        "RandomBrightnessContrast": {
+            "brightness_limit": [0.05, 0.20],
+            "contrast_limit": [0.05, 0.20]
+        },
+        "ShiftScaleRotate": {
+            "shift_limit": [0.025, 0.05],
+            "scale_limit": [0.05, 0.10],
+            "rotate_limit": [30, 180]
+        },
+        "IAAPiecewiseAffine":{
+            "scale": [0.010, 0.025]
+        },
+        "ElasticTransform": {
+            "alpha": [250, 2000]
+        },
+        "GridDistortion": {
+            "distort_limit": [0.05, 0.25]
+        },
+        "IAAPerspective": {
+            "scale": [0.05, 0.1]
+        },
+        "HorizontalFlip": {
+            "p": [0.5, 0.25]
+        }
+    },
+    "postprocess": {
+        "DilateSigmoidPostProcess":{
+            "scheduler": [7, 5, 5]
+        }
+    }
+}

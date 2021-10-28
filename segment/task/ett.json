@@ -1,0 +1,112 @@
+{
+    "train": {
+        "batch_size": 64,
+        "prefetch": 1,
+        "max_epoch": 50,
+        "learning_rate": 2.5e-04,
+        "weight_decay": 5e-03,
+        "continue": false,
+        "monitor": {
+		    "metric": "ett_auc",
+		    "mode": "max"
+	    },
+        "running_losses": [
+            "ett_ce"
+        ]
+    },
+    "model": {
+		"load_ckpt": true,
+		"architecture": "Unet",
+        "decoder": true,
+        "act_layer": "PReLU",
+        "norm_layer": {
+            "Batchnorm2d": {
+                "num_groups":32
+            }
+        },
+        "cls_out_features": {
+            "ett": 3
+        },
+		"parameters": {
+			"encoder_name": "timm-resnest200e",
+            "encoder_weights": "imagenet",
+			"encoder_depth": 5,
+			"decoder_channels": [512, 256, 128, 64, 32],
+			"in_channels": 10,
+			"classes": 1,
+			"decoder_attention_type": "scse"
+		}
+	},
+	"optimizer": {
+        "amsgrad": true,
+		"load_ckpt": false
+	},
+	"lr_scheduler":{
+        "name": "CyclicLR",
+        "epoch_size_down": 5,
+        "parameters":{
+            "base_lr": 1e-6,
+            "step_size_up": 1,
+            "mode": "exp_range",
+            "gamma": 0.9999,
+            "cycle_momentum": false
+        },
+        "load_ckpt": false
+	},
+	"loss": {
+        "ce": {
+            "ett": {
+                "weight": [
+					0.21,
+					0.35,
+					0.43
+                ],
+                "factor": 1.0
+            }
+        }
+	},
+	"dataset": {
+		"image_file_postfix": "image_9c_512",
+		"mask_file_postfix": "pred_ett",
+		"precache": 1.0,
+        "catheters": "ett",
+        "findings": {
+            "ett": [
+                "ETT - Abnormal",
+                "ETT - Borderline",
+                "ETT - Normal"
+		    ]
+        }
+	},
+    "aug_scheduler": {
+        "RandomBrightnessContrast": {
+            "brightness_limit": [0.05, 0.20],
+            "contrast_limit": [0.05, 0.20]
+        },
+        "ShiftScaleRotate": {
+            "shift_limit": [0.025, 0.05],
+            "scale_limit": [0.05, 0.075],
+            "rotate_limit": [30, 180]
+        },
+        "IAAPiecewiseAffine":{
+            "scale": [0.010, 0.025]
+        },
+        "ElasticTransform": {
+            "alpha": [250, 2000]
+        },
+        "GridDistortion": {
+            "distort_limit": [0.05, 0.25]
+        },
+        "IAAPerspective": {
+            "scale": [0.05, 0.1]
+        },
+        "HorizontalFlip": {
+            "p": [0.5, 0.25]
+        }
+    },
+    "postprocess": {
+        "DilateSoftmaxPostProcess":{
+            "scheduler": [7, 5, 5]
+        }
+    }
+}
